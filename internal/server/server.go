@@ -10,11 +10,10 @@ import (
 func New() http.Handler {
 	mux := http.NewServeMux()
 
-	authHandler := auth.NewHandler()
+	authModule := auth.New(mux)
 	filmsHandler := films.NewHandler()
 
-	mux.HandleFunc("POST /auth/login", authHandler.Login)
-	mux.HandleFunc("POST /auth/register", authHandler.Register)
+	authModule.Register()
 
 	mux.Handle("GET /films", auth.Middleware(http.HandlerFunc(filmsHandler.List)))
 	mux.Handle("GET /films/{id}", auth.Middleware(http.HandlerFunc(filmsHandler.Get)))
