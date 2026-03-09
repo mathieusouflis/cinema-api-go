@@ -1,36 +1,34 @@
 package module
 
 import (
+	"fmt"
 	"net/http"
 
 	"example.com/filmserver/pkg/route"
 )
 
 type Module struct {
-	basePath string
-	routes   []route.Route
-	server   *http.ServeMux
+	BasePath string
+	Routes   []route.Route
+	Server   *http.ServeMux
 }
 
-func New(m Module) Module {
-	module := Module{
-		basePath: m.basePath,
-		routes:   m.routes,
-		server:   m.server,
-	}
-	return module
+func New(basePath string, server *http.ServeMux) Module {
+	return Module{BasePath: basePath, Routes: []route.Route{}, Server: server}
+}
+
+func (m *Module) RegisterRoute(operation Operation, path string, handler http.Handler) {
+	m.Routes = append(m.Routes, route.Route{Path: operation.String() + " " + m.BasePath + path, Handler: handler})
 }
 
 func (m Module) Register() {
-	for _, route := range m.routes {
-		m.server.Handle(m.basePath, route.Handler())
+	for _, r := range m.Routes {
+		m.Server.Handle(r.Path, r.Handler)
 	}
 }
 
-func (m Module) GetRoutes() []string {
-	routes := []string{}
-	for _, route := range m.routes {
-		routes = append(routes, m.basePath+route.Path())
+func (m Module) PrintRoutesDocumentation() {
+	for _, r := range m.Routes {
+		fmt.Printf("%s\n", r.Path)
 	}
-	return routes
 }
