@@ -3,6 +3,7 @@ package module
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"example.com/filmserver/pkg/route"
 )
@@ -28,7 +29,9 @@ func (m Module) Register() {
 }
 
 func (m Module) PrintRoutesDocumentation() {
+	fmt.Printf("\n\n========== %s ==========\n", m.BasePath)
 	for _, r := range m.Routes {
-		fmt.Printf("%s\n", r.Path)
+		splittedRoute := strings.Split(r.Path, "/")
+		fmt.Printf("%s\n", string(splittedRoute[0])+"/"+strings.Join(splittedRoute[2:], "/"))
 	}
 }

@@ -11,12 +11,13 @@ func New() http.Handler {
 	mux := http.NewServeMux()
 
 	authModule := auth.New(mux)
-	filmsHandler := films.NewHandler()
+	filmsModule := films.New(mux)
 
 	authModule.Register()
+	filmsModule.Register()
 
-	mux.Handle("GET /films", auth.Middleware(http.HandlerFunc(filmsHandler.List)))
-	mux.Handle("GET /films/{id}", auth.Middleware(http.HandlerFunc(filmsHandler.Get)))
+	filmsModule.PrintRoutesDocumentation()
+	authModule.PrintRoutesDocumentation()
 
 	return mux
 }
