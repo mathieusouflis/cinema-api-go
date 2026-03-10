@@ -1,4 +1,4 @@
-package module
+package router
 
 type Operation int
 
