@@ -5,10 +5,12 @@ import (
 	"net/http"
 
 	"example.com/filmserver/internal/server"
+	"example.com/filmserver/pkg/env"
 )
 
 func main() {
+	port := env.GetEnv("port", "8080")
 	srv := server.New()
-	log.Println("Starting server on :8080")
-	log.Fatal(http.ListenAndServe(":8080", srv))
+	log.Printf("Starting server on :%v", port)
+	log.Fatal(http.ListenAndServe(":"+port, srv))
 }
