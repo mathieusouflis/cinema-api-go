@@ -1,7 +1,7 @@
 package handler
 
-import usecase "authService/internal/usecase/login"
+import loginUsecase "authService/internal/usecase/login"
 
 type Dependencies struct {
-	LoginUseCase *usecase.Usecase
+	LoginUseCase loginUsecase.Usecase
 }

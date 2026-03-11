@@ -1,7 +1,7 @@
 package handler
 
 import (
-	usecase "authService/internal/usecase/login"
+	loginUsecase "authService/internal/usecase/login"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -11,15 +11,15 @@ import (
 )
 
 type LoginHandler struct {
-	usecase *usecase.Usecase
+	usecase *loginUsecase.Usecase
 }
 
-func NewLoginHandler(usecase *usecase.Usecase) *LoginHandler {
+func NewLoginHandler(usecase *loginUsecase.Usecase) *LoginHandler {
 	return &LoginHandler{usecase: usecase}
 }
 
 func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var req usecase.Input
+	var req loginUsecase.Input
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		errors.Render(w, errors.ErrBadRequest)
 		return
@@ -38,7 +38,7 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 		Path:     "/auth",
-		MaxAge:   int(usecase.RefreshTokenTTL / time.Second),
+		MaxAge:   int(loginUsecase.RefreshTokenTTL / time.Second),
 	})
 
 	render.JSON(w, http.StatusOK, map[string]string{

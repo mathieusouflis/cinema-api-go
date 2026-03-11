@@ -1,4 +1,4 @@
-package usecase
+package loginUsecase
 
 import (
 	"context"
@@ -29,7 +29,7 @@ type Usecase struct {
 	UserRepository repository.PostgresUserRepository
 }
 
-func NewLoginUseCase(userRepository *repository.PostgresUserRepository) *Usecase {
+func New(userRepository *repository.PostgresUserRepository) *Usecase {
 	return &Usecase{UserRepository: *userRepository}
 }
 

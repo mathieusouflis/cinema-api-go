@@ -27,7 +27,7 @@ func main() {
 	userRepository := repository.NewPostgresUserRepository(pg)
 
 	deps := handler.Dependencies{
-		LoginUseCase: usecase.NewLoginUseCase(userRepository),
+		LoginUseCase: *usecase.New(userRepository),
 	}
 
 	router := chi.NewRouter()
