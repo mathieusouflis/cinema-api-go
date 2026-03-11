@@ -7,5 +7,6 @@ import (
 func Munt(router *chi.Mux, dependencies *Dependencies) {
 	router.Route("/auth", func(r chi.Router) {
 		r.Post("/login", NewLoginHandler(&dependencies.LoginUseCase).ServeHTTP)
+		r.Post("/register", NewRegisterHandler(&dependencies.RegisterUseCase).ServeHTTP)
 	})
 }

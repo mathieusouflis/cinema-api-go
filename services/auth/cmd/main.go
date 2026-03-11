@@ -5,7 +5,8 @@ import (
 	"authService/internal/config"
 	"authService/internal/handler"
 	repository "authService/internal/repository/postgres"
-	usecase "authService/internal/usecase/login"
+	loginUsecase "authService/internal/usecase/login"
+	registerUsecase "authService/internal/usecase/register"
 	"context"
 
 	"github.com/go-chi/chi/v5"
@@ -27,7 +28,8 @@ func main() {
 	userRepository := repository.NewPostgresUserRepository(pg)
 
 	deps := handler.Dependencies{
-		LoginUseCase: *usecase.New(userRepository),
+		LoginUseCase:    *loginUsecase.New(userRepository),
+		RegisterUseCase: *registerUsecase.New(userRepository),
 	}
 
 	router := chi.NewRouter()
