@@ -13,5 +13,7 @@ type User struct {
 	Username string
 	Email    string
 	Password string
+	GoogleID pgtype.Text
+	GithubID pgtype.Text
 	Role     string
 }
