@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"authService/internal/domain"
 	repository "authService/internal/repository/postgres"
 
 	"filmserver/pkg/errors"
@@ -26,11 +27,15 @@ type Output struct {
 }
 
 type Usecase struct {
-	UserRepository repository.PostgresUserRepository
+	UserRepository  repository.PostgresUserRepository
+	TokenRepository domain.TokenRepository
 }
 
-func New(userRepository *repository.PostgresUserRepository) *Usecase {
-	return &Usecase{UserRepository: *userRepository}
+func New(userRepository *repository.PostgresUserRepository, tokenRepository domain.TokenRepository) *Usecase {
+	return &Usecase{
+		UserRepository:  *userRepository,
+		TokenRepository: tokenRepository,
+	}
 }
 
 func (u *Usecase) Execute(ctx context.Context, input Input) (Output, error) {
@@ -59,6 +64,10 @@ func (u *Usecase) Execute(ctx context.Context, input Input) (Output, error) {
 
 	refreshToken, err := jwt.SignToken(claims, RefreshTokenTTL)
 	if err != nil {
+		return Output{}, err
+	}
+
+	if err := u.TokenRepository.StoreRefreshToken(ctx, user.ID, refreshToken, RefreshTokenTTL); err != nil {
 		return Output{}, err
 	}
 
