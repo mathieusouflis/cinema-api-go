@@ -3,16 +3,16 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: mydb
+      POSTGRES_USER: kirona
+      POSTGRES_PASSWORD: kirona
+      POSTGRES_DB: kirona_auth
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../scripts/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kirona -d kirona"]
+      test: ["CMD-SHELL", "pg_isready -U kirona -d kirona_auth"]
       interval: 5s
       timeout: 5s
       retries: 5

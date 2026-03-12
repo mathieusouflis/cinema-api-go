@@ -3,6 +3,7 @@ package config
 import (
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	"github.com/spf13/viper"
 )
 
@@ -68,11 +69,22 @@ type TMDB struct {
 	APIKey string `mapstructure:"TMDB_API_KEY"`
 }
 
-// Load charge les vars d'env dans la struct fournie
+// Load charge les vars d'env dans la struct fournie.
+// Tente de lire .env depuis le répertoire courant (CWD du service).
+// Les vraies vars d'env (OS) prennent toujours le dessus sur le fichier .env.
 func Load(cfg any) error {
+	viper.SetConfigFile(".env")
+	viper.SetConfigType("dotenv")
+	_ = viper.ReadInConfig() // silencieux si .env absent (prod, CI)
+
 	viper.AutomaticEnv()
 	viper.SetDefault("ENV", "development")
 	viper.SetDefault("PORT", "8080")
 	viper.SetDefault("LOG_LEVEL", "info")
-	return viper.Unmarshal(cfg)
+	// Squash=true flattens anonymous embedded structs so that e.g.
+	// config.Postgres embedded in a service Config maps DATABASE_URL
+	// directly instead of expecting a nested "Postgres" key.
+	return viper.Unmarshal(cfg, func(c *mapstructure.DecoderConfig) {
+		c.Squash = true
+	})
 }
