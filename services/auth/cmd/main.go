@@ -11,9 +11,11 @@ import (
 	refreshUsecase "authService/internal/usecase/refresh"
 	registerUsecase "authService/internal/usecase/register"
 	"context"
+	"net/http"
 	"os"
 
 	"filmserver/pkg/logger"
+	"filmserver/pkg/render"
 	"filmserver/pkg/server"
 
 	"github.com/go-chi/chi/v5"
@@ -52,7 +54,9 @@ func main() {
 	}
 
 	router := chi.NewRouter()
+	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		render.JSON(w, http.StatusOK, map[string]string{"message": "Hello, World!"})
+	})
 	handler.Munt(router, &deps)
-
 	server.Run(":"+conf.Port, router, log)
 }
