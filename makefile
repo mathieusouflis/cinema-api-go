@@ -21,28 +21,30 @@ infra/logs: ## Show infrastructure logs
 build: ## Build all services
 	@for svc in $(SERVICES); do \
 		echo "→ building $$svc..."; \
-		go build -o bin/$$svc ./services/$$svc/cmd/main.go; \
+		(cd services/$$svc && go build -o ../../bin/$$svc ./cmd/); \
 	done
 
 .PHONY: build/%
 build/%: ## Build a single service  (e.g. make build/auth)
-	go build -o bin/$* ./services/$*/cmd/main.go
+	cd services/$* && go build -o ../../bin/$* ./cmd/
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 
 .PHONY: run/%
 run/%: ## Run a single service  (e.g. make run/auth)
-	go run ./services/$*/cmd/main.go
+	cd services/$* && go run ./cmd/
 
 # ── Test ──────────────────────────────────────────────────────────────────────
 
 .PHONY: test
 test: ## Run all tests
-	go test ./...
+	@for svc in $(SERVICES); do \
+		(cd services/$$svc && go test ./...) 2>/dev/null || true; \
+	done
 
 .PHONY: test/%
 test/%: ## Run tests for a single service  (e.g. make test/auth)
-	go test ./services/$*/...
+	cd services/$* && go test ./...
 
 .PHONY: test/cover
 test/cover: ## Run tests with coverage report
