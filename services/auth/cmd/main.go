@@ -11,6 +11,10 @@ import (
 	refreshUsecase "authService/internal/usecase/refresh"
 	registerUsecase "authService/internal/usecase/register"
 	"context"
+	"os"
+
+	"filmserver/pkg/logger"
+	"filmserver/pkg/server"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -19,16 +23,19 @@ import (
 
 func main() {
 	conf := config.Load()
+	log := logger.New(conf.Env)
 
 	conn, err := pgx.Connect(context.Background(), conf.Postgres.URL)
 	if err != nil {
-		panic(err)
+		log.Error("failed to connect to postgres", "err", err)
+		os.Exit(1)
 	}
 	defer conn.Close(context.Background())
 
 	redisOpts, err := redis.ParseURL(conf.Redis.URL)
 	if err != nil {
-		panic(err)
+		log.Error("failed to parse redis URL", "err", err)
+		os.Exit(1)
 	}
 	redisClient := redis.NewClient(redisOpts)
 	defer redisClient.Close()
@@ -46,4 +53,6 @@ func main() {
 
 	router := chi.NewRouter()
 	handler.Munt(router, &deps)
+
+	server.Run(":"+conf.Port, router, log)
 }
