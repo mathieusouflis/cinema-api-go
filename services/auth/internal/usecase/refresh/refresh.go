@@ -7,7 +7,7 @@ import (
 	loginUsecase "authService/internal/usecase/login"
 
 	"filmserver/pkg/errors"
-	"filmserver/pkg/pkg/jwt"
+	"filmserver/pkg/jwt"
 )
 
 type Input struct {

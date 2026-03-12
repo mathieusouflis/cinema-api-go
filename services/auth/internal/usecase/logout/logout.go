@@ -6,7 +6,7 @@ import (
 	"authService/internal/domain"
 
 	"filmserver/pkg/errors"
-	"filmserver/pkg/pkg/jwt"
+	"filmserver/pkg/jwt"
 )
 
 type Input struct {

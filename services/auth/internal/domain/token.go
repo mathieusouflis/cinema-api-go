@@ -2,9 +2,8 @@ package domain
 
 import (
 	"context"
+	"filmserver/pkg/jwt"
 	"time"
-
-	"filmserver/pkg/pkg/jwt"
 )
 
 type Token struct {
