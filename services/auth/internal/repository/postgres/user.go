@@ -3,30 +3,21 @@ package repository
 import (
 	"authService/db/orm"
 	"authService/internal/domain"
-	repository "authService/internal/repository/postgres/utils/mappings"
+	mappings "authService/internal/repository/postgres/utils/mappings"
 	"context"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
-
-type UserRepository interface {
-	GetByID(ctx context.Context, id int32) (*orm.User, error)
-	GetByEmail(ctx context.Context, email string) (*orm.User, error)
-	Create(ctx context.Context, params orm.CreateUserParams) (*orm.User, error)
-	Delete(ctx context.Context, id int32) error
-}
 
 type PostgresUserRepository struct {
 	queries *orm.Queries
 }
 
 func NewPostgresUserRepository(queries *orm.Queries) *PostgresUserRepository {
-	return &PostgresUserRepository{
-		queries: queries,
-	}
+	return &PostgresUserRepository{queries: queries}
 }
 
-func (r *PostgresUserRepository) GetByID(ctx context.Context, id int32) (*domain.User, error) {
+func (r *PostgresUserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
 	var uuid pgtype.UUID
 	if err := uuid.Scan(id); err != nil {
 		return nil, err
@@ -35,7 +26,7 @@ func (r *PostgresUserRepository) GetByID(ctx context.Context, id int32) (*domain
 	if err != nil {
 		return nil, err
 	}
-	return repository.MapUserToDomain(&user), nil
+	return mappings.MapUserToDomain(&user), nil
 }
 
 func (r *PostgresUserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
@@ -43,26 +34,30 @@ func (r *PostgresUserRepository) GetByEmail(ctx context.Context, email string) (
 	if err != nil {
 		return nil, err
 	}
-	return repository.MapUserToDomain(&user), nil
+	return mappings.MapUserToDomain(&user), nil
 }
+
 func (r *PostgresUserRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
 	user, err := r.queries.GetUserByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
-	return repository.MapUserToDomain(&user), nil
+	return mappings.MapUserToDomain(&user), nil
 }
 
-func (r *PostgresUserRepository) Create(ctx context.Context, params orm.CreateUserParams) (*domain.User, error) {
-	user, err := r.queries.CreateUser(ctx, params)
+func (r *PostgresUserRepository) Create(ctx context.Context, input domain.CreateUserInput) (*domain.User, error) {
+	user, err := r.queries.CreateUser(ctx, orm.CreateUserParams{
+		Username: input.Username,
+		Email:    input.Email,
+		Password: input.Password,
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	return repository.MapUserToDomain(&user), nil
+	return mappings.MapUserToDomain(&user), nil
 }
 
-func (r *PostgresUserRepository) Delete(ctx context.Context, id int32) error {
+func (r *PostgresUserRepository) Delete(ctx context.Context, id string) error {
 	var uuid pgtype.UUID
 	if err := uuid.Scan(id); err != nil {
 		return err

@@ -2,13 +2,13 @@ package registerUsecase
 
 import (
 	"context"
-	"filmserver/pkg/errors"
 	"net/mail"
 	"regexp"
 	"strings"
 
-	"authService/db/orm"
-	repository "authService/internal/repository/postgres"
+	"authService/internal/domain"
+
+	"filmserver/pkg/errors"
 )
 
 type Input struct {
@@ -17,19 +17,17 @@ type Input struct {
 	Password string `json:"password"`
 }
 
-type Output struct {
-}
+type Output struct{}
 
 type Usecase struct {
-	UserRepository repository.PostgresUserRepository
+	UserRepository domain.UserRepository
 }
 
-func New(userRepository *repository.PostgresUserRepository) *Usecase {
-	return &Usecase{UserRepository: *userRepository}
+func New(userRepository domain.UserRepository) *Usecase {
+	return &Usecase{UserRepository: userRepository}
 }
 
 func (u *Usecase) Execute(ctx context.Context, input Input) (Output, error) {
-
 	if strings.TrimSpace(input.Email) == "" || strings.TrimSpace(input.Username) == "" || strings.TrimSpace(input.Password) == "" {
 		return Output{}, errors.ErrBadRequest
 	}
@@ -61,9 +59,9 @@ func (u *Usecase) Execute(ctx context.Context, input Input) (Output, error) {
 		return Output{}, errors.ErrBadRequest
 	}
 
-	_, err = u.UserRepository.Create(ctx, orm.CreateUserParams{
+	_, err = u.UserRepository.Create(ctx, domain.CreateUserInput{
 		Username: username,
-		Email:    email.String(),
+		Email:    email.Address,
 		Password: input.Password,
 	})
 

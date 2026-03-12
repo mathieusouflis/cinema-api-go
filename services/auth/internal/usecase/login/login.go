@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"authService/internal/domain"
-	repository "authService/internal/repository/postgres"
 
 	"filmserver/pkg/errors"
 	"filmserver/pkg/pkg/jwt"
@@ -27,13 +26,13 @@ type Output struct {
 }
 
 type Usecase struct {
-	UserRepository  repository.PostgresUserRepository
+	UserRepository  domain.UserRepository
 	TokenRepository domain.TokenRepository
 }
 
-func New(userRepository *repository.PostgresUserRepository, tokenRepository domain.TokenRepository) *Usecase {
+func New(userRepository domain.UserRepository, tokenRepository domain.TokenRepository) *Usecase {
 	return &Usecase{
-		UserRepository:  *userRepository,
+		UserRepository:  userRepository,
 		TokenRepository: tokenRepository,
 	}
 }
