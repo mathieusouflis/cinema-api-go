@@ -5,6 +5,7 @@ import (
 	"net/mail"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"authService/internal/domain"
 
@@ -27,6 +28,31 @@ func New(userRepository domain.UserRepository) *Usecase {
 	return &Usecase{UserRepository: userRepository}
 }
 
+var (
+	usernameRegex = regexp.MustCompile(`^[a-z0-9_.]+$`)
+	specialChars  = regexp.MustCompile(`[!@#$%^&*()\-_=+\[\]{};:'",.<>?/\\|]`)
+)
+
+// isStrongPassword checks: ≥8 chars, upper, lower, digit, special char.
+// Uses plain checks instead of lookaheads (unsupported in Go RE2).
+func isStrongPassword(p string) bool {
+	if len(p) < 8 {
+		return false
+	}
+	var hasUpper, hasLower, hasDigit bool
+	for _, r := range p {
+		switch {
+		case unicode.IsUpper(r):
+			hasUpper = true
+		case unicode.IsLower(r):
+			hasLower = true
+		case unicode.IsDigit(r):
+			hasDigit = true
+		}
+	}
+	return hasUpper && hasLower && hasDigit && specialChars.MatchString(p)
+}
+
 func (u *Usecase) Execute(ctx context.Context, input Input) (Output, error) {
 	if strings.TrimSpace(input.Email) == "" || strings.TrimSpace(input.Username) == "" || strings.TrimSpace(input.Password) == "" {
 		return Output{}, errors.ErrBadRequest
@@ -43,19 +69,13 @@ func (u *Usecase) Execute(ctx context.Context, input Input) (Output, error) {
 		return Output{}, errors.ErrBadRequest
 	}
 
-	usernameRegex := regexp.MustCompile(`^[a-z0-9_.]+$`)
 	if !usernameRegex.MatchString(username) {
 		return Output{}, errors.ErrBadRequest
 	}
 
-	// passwordRegex enforces a strong password policy:
-	// - At least 8 characters long
-	// - At least one uppercase letter (A-Z)
-	// - At least one lowercase letter (a-z)
-	// - At least one digit (0-9)
-	// - At least one special character from: !@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?
-	passwordRegex := regexp.MustCompile(`^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()\-_=+\[\]{};:'",.<>?/\\|]).{8,}$`)
-	if !passwordRegex.MatchString(input.Password) {
+	// Go's regexp (RE2) doesn't support lookaheads, so we check each
+	// password policy condition separately.
+	if !isStrongPassword(input.Password) {
 		return Output{}, errors.ErrBadRequest
 	}
 
