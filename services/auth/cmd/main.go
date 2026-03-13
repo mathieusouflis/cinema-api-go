@@ -16,6 +16,7 @@ import (
 	"os"
 
 	"filmserver/pkg/logger"
+	"filmserver/pkg/middleware"
 	"filmserver/pkg/render"
 	"filmserver/pkg/server"
 
@@ -57,6 +58,7 @@ func main() {
 	}
 
 	router := chi.NewRouter()
+	router.Use(middleware.NewLogMiddleware())
 	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:3000"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
