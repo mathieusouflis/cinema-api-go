@@ -49,7 +49,39 @@ func (r *PostgresUserRepository) Create(ctx context.Context, input domain.Create
 	user, err := r.queries.CreateUser(ctx, orm.CreateUserParams{
 		Username: input.Username,
 		Email:    input.Email,
-		Password: input.Password,
+		Password: pgtype.Text{String: input.Password, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return mappings.MapUserToDomain(&user), nil
+}
+
+func (r *PostgresUserRepository) GetByGoogleID(ctx context.Context, googleID string) (*domain.User, error) {
+	user, err := r.queries.GetUserByGoogleID(ctx, pgtype.Text{String: googleID, Valid: true})
+	if err != nil {
+		return nil, err
+	}
+
+	return mappings.MapUserToDomain(&user), nil
+}
+
+func (r *PostgresUserRepository) UpdateGoogleID(ctx context.Context, userID string, googleID string) error {
+	var uuid pgtype.UUID
+	if err := uuid.Scan(userID); err != nil {
+		return err
+	}
+	return r.queries.UpdateGoogleID(ctx, orm.UpdateGoogleIDParams{
+		ID:       uuid,
+		GoogleID: pgtype.Text{String: googleID, Valid: true},
+	})
+}
+
+func (r *PostgresUserRepository) CreateWithOAuth(ctx context.Context, input domain.CreateOAuthUserInput) (*domain.User, error) {
+	user, err := r.queries.CreateUserWithOAuth(ctx, orm.CreateUserWithOAuthParams{
+		Username: input.Username,
+		Email:    input.Email,
+		GoogleID: pgtype.Text{String: input.GoogleID, Valid: true},
 	})
 	if err != nil {
 		return nil, err

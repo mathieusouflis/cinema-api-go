@@ -10,7 +10,8 @@ func MapUserToDomain(user *orm.User) *domain.User {
 		ID:       user.ID.String(),
 		Username: user.Username,
 		Email:    user.Email,
-		Password: user.Password,
+		Password: user.Password.String,
+		GoogleID: user.GoogleID.String,
 		Role:     user.Role,
 	}
 }

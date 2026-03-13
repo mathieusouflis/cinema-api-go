@@ -8,6 +8,7 @@ import (
 	redisRepository "authService/internal/repository/redis"
 	loginUsecase "authService/internal/usecase/login"
 	logoutUsecase "authService/internal/usecase/logout"
+	oauthCallbackUsecase "authService/internal/usecase/oauth"
 	refreshUsecase "authService/internal/usecase/refresh"
 	registerUsecase "authService/internal/usecase/register"
 	"context"
@@ -19,6 +20,7 @@ import (
 	"filmserver/pkg/server"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/jackc/pgx/v5"
 	"github.com/redis/go-redis/v9"
 )
@@ -47,13 +49,20 @@ func main() {
 	tokenRepo := redisRepository.NewRedisTokenRepository(redisClient)
 
 	deps := handler.Dependencies{
-		LoginUseCase:    *loginUsecase.New(userRepo, tokenRepo),
-		RegisterUseCase: *registerUsecase.New(userRepo),
-		RefreshUseCase:  *refreshUsecase.New(tokenRepo),
-		LogoutUseCase:   *logoutUsecase.New(tokenRepo),
+		LoginUseCase:         *loginUsecase.New(userRepo, tokenRepo),
+		RegisterUseCase:      *registerUsecase.New(userRepo),
+		RefreshUseCase:       *refreshUsecase.New(tokenRepo),
+		LogoutUseCase:        *logoutUsecase.New(tokenRepo),
+		OauthCallbackUseCase: *oauthCallbackUsecase.New(tokenRepo, userRepo),
 	}
 
 	router := chi.NewRouter()
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Content-Type"},
+		AllowCredentials: true,
+	}))
 	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, http.StatusOK, map[string]string{"message": "Hello, World!"})
 	})

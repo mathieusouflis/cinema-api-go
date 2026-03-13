@@ -10,5 +10,6 @@ func Munt(router *chi.Mux, dependencies *Dependencies) {
 		r.Post("/register", NewRegisterHandler(&dependencies.RegisterUseCase).ServeHTTP)
 		r.Post("/refresh", NewRefreshHandler(&dependencies.RefreshUseCase).ServeHTTP)
 		r.Post("/logout", NewLogoutHandler(&dependencies.LogoutUseCase).ServeHTTP)
+		r.Post("/oauth/{provider}/callback", NewOauthHandler(&dependencies.OauthCallbackUseCase).ServeHTTP)
 	})
 }
