@@ -64,19 +64,25 @@ fmt: ## Format all Go files
 
 # ── Database ──────────────────────────────────────────────────────────────────
 
+# MIGRATE — wrapper around scripts/migrate/main.go (no system tool required).
+# Reads DATABASE_URL from services/$(svc)/.env automatically.
+MIGRATE := go run ./scripts/migrate/
+ENV_FILE  = services/$(svc)/.env
+
 .PHONY: migrate/up
-migrate/up: ## Run all migrations (e.g. make migrate/up svc=auth)
-	migrate -path services/$(svc)/db/migrations \
-	        -database "$(DATABASE_URL)" up
+migrate/up: ## Run all pending migrations  (e.g. make migrate/up svc=auth)
+	@set -a && . $(ENV_FILE) && set +a && \
+	MIGRATIONS_PATH=services/$(svc)/db/migrations $(MIGRATE) up
 
 .PHONY: migrate/down
 migrate/down: ## Rollback last migration  (e.g. make migrate/down svc=auth)
-	migrate -path services/$(svc)/db/migrations \
-	        -database "$(DATABASE_URL)" down 1
+	@set -a && . $(ENV_FILE) && set +a && \
+	MIGRATIONS_PATH=services/$(svc)/db/migrations $(MIGRATE) down
 
 .PHONY: migrate/create
 migrate/create: ## Create a new migration  (e.g. make migrate/create svc=auth name=add_sessions)
-	migrate create -ext sql -dir services/$(svc)/db/migrations -seq $(name)
+	@set -a && . $(ENV_FILE) && set +a && \
+	MIGRATIONS_PATH=services/$(svc)/db/migrations $(MIGRATE) create $(name)
 
 .PHONY: db/seed
 db/seed: ## Seed the database with test data

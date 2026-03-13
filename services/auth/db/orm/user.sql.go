@@ -18,11 +18,36 @@ INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, 
 type CreateUserParams struct {
 	Username string
 	Email    string
-	Password string
+	Password pgtype.Text
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Email, arg.Password)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.Password,
+		&i.GoogleID,
+		&i.GithubID,
+		&i.Role,
+	)
+	return i, err
+}
+
+const createUserWithOAuth = `-- name: CreateUserWithOAuth :one
+INSERT INTO users (username, email, password, google_id) VALUES ($1, $2, '', $3) RETURNING id, username, email, password, google_id, github_id, role
+`
+
+type CreateUserWithOAuthParams struct {
+	Username string
+	Email    string
+	GoogleID pgtype.Text
+}
+
+func (q *Queries) CreateUserWithOAuth(ctx context.Context, arg CreateUserWithOAuthParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUserWithOAuth, arg.Username, arg.Email, arg.GoogleID)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -51,6 +76,25 @@ SELECT id, username, email, password, google_id, github_id, role FROM users WHER
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.Password,
+		&i.GoogleID,
+		&i.GithubID,
+		&i.Role,
+	)
+	return i, err
+}
+
+const getUserByGoogleID = `-- name: GetUserByGoogleID :one
+SELECT id, username, email, password, google_id, github_id, role FROM users WHERE google_id = $1
+`
+
+func (q *Queries) GetUserByGoogleID(ctx context.Context, googleID pgtype.Text) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByGoogleID, googleID)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -100,4 +144,18 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Role,
 	)
 	return i, err
+}
+
+const updateGoogleID = `-- name: UpdateGoogleID :exec
+UPDATE users SET google_id = $2 WHERE id = $1
+`
+
+type UpdateGoogleIDParams struct {
+	ID       pgtype.UUID
+	GoogleID pgtype.Text
+}
+
+func (q *Queries) UpdateGoogleID(ctx context.Context, arg UpdateGoogleIDParams) error {
+	_, err := q.db.Exec(ctx, updateGoogleID, arg.ID, arg.GoogleID)
+	return err
 }

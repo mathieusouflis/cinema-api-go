@@ -12,7 +12,7 @@ type User struct {
 	ID       pgtype.UUID
 	Username string
 	Email    string
-	Password string
+	Password pgtype.Text
 	GoogleID pgtype.Text
 	GithubID pgtype.Text
 	Role     string

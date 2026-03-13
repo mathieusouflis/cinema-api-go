@@ -96,6 +96,23 @@ services:
         mc anonymous set download local/kirona-media/public
       "
 
+  # ── Migrations ──────────────────────────────────────────────────────────────
+  # One shot per service: runs on every `make infra/up`, skips already-applied
+  # migrations. Add a new block for each new microservice.
+
+  migrate-auth:
+    image: migrate/migrate:v4.18.1
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../services/auth/db/migrations:/migrations:ro
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://kirona:kirona@postgres:5432/kirona_auth?sslmode=disable"
+      - "up"
+
 volumes:
   postgres_data:
   redis_data:
