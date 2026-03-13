@@ -1,0 +1,319 @@
+name: kirona
+
+# Start infra first: make infra/up
+# Then:            make dev/watch
+
+networks:
+  services:
+    name: kirona_services
+  postgres:
+    external: true
+    name: kirona_postgres
+  redis:
+    external: true
+    name: kirona_redis
+  nats:
+    external: true
+    name: kirona_nats
+  meilisearch:
+    external: true
+    name: kirona_meilisearch
+  minio:
+    external: true
+    name: kirona_minio
+
+services:
+  # ── Gateway ──────────────────────────────────────────────────────────────────
+  gateway:
+    build:
+      context: ..
+      dockerfile: services/gateway/Dockerfile.dev
+    networks: [services]
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      ENV: development
+      AUTH_SERVICE_URL: http://auth:8081
+      USER_SERVICE_URL: http://user:8082
+      CATALOG_SERVICE_URL: http://catalog:8083
+      PEOPLE_SERVICE_URL: http://people:8084
+      SOCIAL_SERVICE_URL: http://social:8085
+      WATCHPARTY_SERVICE_URL: http://watchparty:8086
+      HUB_SERVICE_URL: http://hub:8087
+      NOTIFICATION_SERVICE_URL: http://notification:8088
+    env_file:
+      - ../services/gateway/.env
+    depends_on:
+      auth:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    develop:
+      watch:
+        - path: ../services/gateway
+          action: sync
+          target: /workspace/services/gateway
+          ignore: [tmp, vendor]
+        - path: ../services/gateway/go.mod
+          action: rebuild
+        - path: ../pkg
+          action: sync
+          target: /workspace/pkg
+
+  # ── Auth ─────────────────────────────────────────────────────────────────────
+  auth:
+    build:
+      context: ..
+      dockerfile: services/auth/Dockerfile.dev
+    networks: [services, postgres, redis]
+    environment:
+      PORT: "8081"
+      DATABASE_URL: postgres://kirona:kirona@postgres:5432/kirona_auth?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-prod}
+      ACCESS_TOKEN_TTL: ${ACCESS_TOKEN_TTL:-3600}
+      OAUTH_GOOGLE_CLIENT_ID: ${OAUTH_GOOGLE_CLIENT_ID:-}
+      OAUTH_GOOGLE_CLIENT_SECRET: ${OAUTH_GOOGLE_CLIENT_SECRET:-}
+      OAUTH_GITHUB_CLIENT_ID: ${OAUTH_GITHUB_CLIENT_ID:-}
+      OAUTH_GITHUB_CLIENT_SECRET: ${OAUTH_GITHUB_CLIENT_SECRET:-}
+    env_file:
+      - ../services/auth/.env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    develop:
+      watch:
+        - path: ../services/auth
+          action: sync
+          target: /workspace/services/auth
+          ignore: [tmp, vendor, db/migrations]
+        - path: ../services/auth/go.mod
+          action: rebuild
+        - path: ../pkg
+          action: sync
+          target: /workspace/pkg
+
+  # ── User ─────────────────────────────────────────────────────────────────────
+  user:
+    build:
+      context: ..
+      dockerfile: services/user/Dockerfile.dev
+    networks: [services, postgres, nats, minio]
+    environment:
+      PORT: "8082"
+      DATABASE_URL: postgres://kirona:kirona@postgres:5432/kirona_user?sslmode=disable
+      NATS_URL: nats://nats:4222
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: kirona-media
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+    env_file:
+      - ../services/user/.env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    develop:
+      watch:
+        - path: ../services/user
+          action: sync
+          target: /workspace/services/user
+          ignore: [tmp, vendor]
+        - path: ../services/user/go.mod
+          action: rebuild
+        - path: ../pkg
+          action: sync
+          target: /workspace/pkg
+
+  # ── Catalog ──────────────────────────────────────────────────────────────────
+  catalog:
+    build:
+      context: ..
+      dockerfile: services/catalog/Dockerfile.dev
+    networks: [services, postgres, redis, meilisearch]
+    environment:
+      PORT: "8083"
+      DATABASE_URL: postgres://kirona:kirona@postgres:5432/kirona_catalog?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      MEILI_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: masterkey
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+    env_file:
+      - ../services/catalog/.env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    develop:
+      watch:
+        - path: ../services/catalog
+          action: sync
+          target: /workspace/services/catalog
+          ignore: [tmp, vendor]
+        - path: ../services/catalog/go.mod
+          action: rebuild
+        - path: ../pkg
+          action: sync
+          target: /workspace/pkg
+
+  # ── People ───────────────────────────────────────────────────────────────────
+  people:
+    build:
+      context: ..
+      dockerfile: services/people/Dockerfile.dev
+    networks: [services, postgres, meilisearch]
+    environment:
+      PORT: "8084"
+      DATABASE_URL: postgres://kirona:kirona@postgres:5432/kirona_people?sslmode=disable
+      MEILI_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: masterkey
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+    env_file:
+      - ../services/people/.env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    develop:
+      watch:
+        - path: ../services/people
+          action: sync
+          target: /workspace/services/people
+          ignore: [tmp, vendor]
+        - path: ../services/people/go.mod
+          action: rebuild
+        - path: ../pkg
+          action: sync
+          target: /workspace/pkg
+
+  # ── Social ───────────────────────────────────────────────────────────────────
+  social:
+    build:
+      context: ..
+      dockerfile: services/social/Dockerfile.dev
+    networks: [services, postgres]
+    environment:
+      PORT: "8085"
+      DATABASE_URL: postgres://kirona:kirona@postgres:5432/kirona_social?sslmode=disable
+    env_file:
+      - ../services/social/.env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8085/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    develop:
+      watch:
+        - path: ../services/social
+          action: sync
+          target: /workspace/services/social
+          ignore: [tmp, vendor]
+        - path: ../services/social/go.mod
+          action: rebuild
+        - path: ../pkg
+          action: sync
+          target: /workspace/pkg
+
+  # ── Watchparty ───────────────────────────────────────────────────────────────
+  watchparty:
+    build:
+      context: ..
+      dockerfile: services/watchparty/Dockerfile.dev
+    networks: [services, postgres, nats]
+    environment:
+      PORT: "8086"
+      DATABASE_URL: postgres://kirona:kirona@postgres:5432/kirona_watchparty?sslmode=disable
+      NATS_URL: nats://nats:4222
+    env_file:
+      - ../services/watchparty/.env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8086/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    develop:
+      watch:
+        - path: ../services/watchparty
+          action: sync
+          target: /workspace/services/watchparty
+          ignore: [tmp, vendor]
+        - path: ../services/watchparty/go.mod
+          action: rebuild
+        - path: ../pkg
+          action: sync
+          target: /workspace/pkg
+
+  # ── Hub (WebSocket) ───────────────────────────────────────────────────────────
+  hub:
+    build:
+      context: ..
+      dockerfile: services/hub/Dockerfile.dev
+    networks: [services, redis]
+    environment:
+      PORT: "8087"
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - ../services/hub/.env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8087/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    develop:
+      watch:
+        - path: ../services/hub
+          action: sync
+          target: /workspace/services/hub
+          ignore: [tmp, vendor]
+        - path: ../services/hub/go.mod
+          action: rebuild
+        - path: ../pkg
+          action: sync
+          target: /workspace/pkg
+
+  # ── Notification ─────────────────────────────────────────────────────────────
+  notification:
+    build:
+      context: ..
+      dockerfile: services/notification/Dockerfile.dev
+    networks: [services, postgres, nats]
+    environment:
+      PORT: "8088"
+      DATABASE_URL: postgres://kirona:kirona@postgres:5432/kirona_notifications?sslmode=disable
+      NATS_URL: nats://nats:4222
+    env_file:
+      - ../services/notification/.env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8088/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    develop:
+      watch:
+        - path: ../services/notification
+          action: sync
+          target: /workspace/services/notification
+          ignore: [tmp, vendor]
+        - path: ../services/notification/go.mod
+          action: rebuild
+        - path: ../pkg
+          action: sync
+          target: /workspace/pkg

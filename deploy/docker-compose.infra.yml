@@ -1,3 +1,5 @@
+name: kirona
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -7,7 +9,9 @@ services:
       POSTGRES_PASSWORD: kirona
       POSTGRES_DB: kirona_auth
     ports:
-      - "5433:5432"
+      - "5432:5432"
+    networks:
+      - postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../scripts/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -22,6 +26,8 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
+    networks:
+      - redis
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
@@ -35,8 +41,10 @@ services:
     image: nats:2-alpine
     restart: unless-stopped
     ports:
-      - "4222:4222" # Client
-      - "8222:8222" # Monitoring
+      - "4222:4222"
+      - "8222:8222"
+    networks:
+      - nats
     command: ["-js", "-m", "8222", "--store_dir", "/data"]
     volumes:
       - nats_data:/data
@@ -55,6 +63,8 @@ services:
       MEILI_NO_ANALYTICS: "true"
     ports:
       - "7700:7700"
+    networks:
+      - meilisearch
     volumes:
       - meilisearch_data:/meili_data
     healthcheck:
@@ -70,48 +80,32 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9000:9000" # API
-      - "9001:9001" # Console
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - minio
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -f http://localhost:9000/minio/health/live || exit 1",
-        ]
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 5
+
   minio-init:
     image: minio/mc:latest
+    networks:
+      - minio
     depends_on:
       minio:
         condition: service_healthy
     entrypoint: >
       /bin/sh -c "
-        mc alias set local http://minio:9000 kirona kirona123 &&
+        mc alias set local http://minio:9000 minioadmin minioadmin &&
         mc mb --ignore-existing local/kirona-media &&
         mc anonymous set download local/kirona-media/public
       "
-
-  # ── Migrations ──────────────────────────────────────────────────────────────
-  # One shot per service: runs on every `make infra/up`, skips already-applied
-  # migrations. Add a new block for each new microservice.
-
-  migrate-auth:
-    image: migrate/migrate:v4.18.1
-    restart: "no"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - ../services/auth/db/migrations:/migrations:ro
-    command:
-      - "-path=/migrations"
-      - "-database=postgres://kirona:kirona@postgres:5432/kirona_auth?sslmode=disable"
-      - "up"
 
 volumes:
   postgres_data:
@@ -119,3 +113,15 @@ volumes:
   nats_data:
   meilisearch_data:
   minio_data:
+
+networks:
+  postgres:
+    name: kirona_postgres
+  redis:
+    name: kirona_redis
+  nats:
+    name: kirona_nats
+  meilisearch:
+    name: kirona_meilisearch
+  minio:
+    name: kirona_minio

@@ -15,6 +15,31 @@ infra/down: ## Stop local infrastructure
 infra/logs: ## Show infrastructure logs
 	docker compose -f deploy/docker-compose.infra.yml logs -f
 
+# --- Dev environment ----------------------------------------------------------
+.PHONY: dev/up
+dev/up: ## Build and start all services in detached mode
+	docker compose -f deploy/docker-compose.dev.yml up --build -d
+
+.PHONY: dev/down
+dev/down: ## Stop all services
+	docker compose -f deploy/docker-compose.dev.yml down
+
+.PHONY: dev/watch
+dev/watch: ## Start all services with hot reload (air + docker compose watch)
+	docker compose -f deploy/docker-compose.dev.yml watch
+
+.PHONY: dev/logs
+dev/logs: ## Follow logs for all services
+	docker compose -f deploy/docker-compose.dev.yml logs -f
+
+.PHONY: dev/logs/%
+dev/logs/%: ## Follow logs for a single service  (e.g. make dev/logs/auth)
+	docker compose -f deploy/docker-compose.dev.yml logs -f $*
+
+.PHONY: dev/restart/%
+dev/restart/%: ## Restart a single service  (e.g. make dev/restart/auth)
+	docker compose -f deploy/docker-compose.dev.yml restart $*
+
 # ── Build ─────────────────────────────────────────────────────────────────────
 
 .PHONY: build
