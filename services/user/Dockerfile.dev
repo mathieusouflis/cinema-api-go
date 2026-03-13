@@ -1,0 +1,18 @@
+FROM golang:1.26-alpine
+
+RUN apk add --no-cache git && \
+    go install github.com/air-verse/air@latest && \
+    go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.18.1
+
+WORKDIR /workspace
+
+COPY go.mod go.sum ./
+COPY pkg/ ./pkg/
+COPY services/user/ ./services/user/
+
+RUN printf 'go 1.26.1\n\nuse (\n\t.\n\t./services/user\n)\n' > go.work
+RUN go work sync && cd services/user && go mod download
+
+WORKDIR /workspace/services/user
+
+ENTRYPOINT ["sh", "scripts/entrypoint.dev.sh"]

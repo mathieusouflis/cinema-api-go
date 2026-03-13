@@ -1,0 +1,17 @@
+FROM golang:1.26-alpine
+
+RUN apk add --no-cache git && \
+    go install github.com/air-verse/air@latest
+
+WORKDIR /workspace
+
+COPY go.mod go.sum ./
+COPY pkg/ ./pkg/
+COPY services/hub/ ./services/hub/
+
+RUN printf 'go 1.26.1\n\nuse (\n\t.\n\t./services/hub\n)\n' > go.work
+RUN go work sync && cd services/hub && go mod download
+
+WORKDIR /workspace/services/hub
+
+CMD ["air", "-c", ".air.toml"]

@@ -30,8 +30,6 @@ func (h *OauthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var email string
 	var id string
 
-	log.Debug("Provider", provider)
-
 	if provider == "google" {
 		var body struct {
 			Token string `json:"credentials"`

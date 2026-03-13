@@ -3,4 +3,12 @@ go 1.26.1
 use (
 	.
 	./services/auth
+	./services/catalog
+	./services/gateway
+	./services/hub
+	./services/notification
+	./services/people
+	./services/social
+	./services/user
+	./services/watchparty
 )

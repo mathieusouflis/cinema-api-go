@@ -1,0 +1,24 @@
+FROM golang:1.26-alpine
+
+RUN apk add --no-cache git && \
+    go install github.com/air-verse/air@latest && \
+    go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.18.1
+
+WORKDIR /workspace
+
+# Layer 1: root module (filmserver / pkg)
+COPY go.mod go.sum ./
+COPY pkg/ ./pkg/
+
+# Layer 2: service
+COPY services/auth/ ./services/auth/
+
+# Minimal go.work for this service only
+RUN printf 'go 1.26.1\n\nuse (\n\t.\n\t./services/auth\n)\n' > go.work
+
+# Pre-download deps (cached unless go.mod/go.sum change)
+RUN go work sync && cd services/auth && go mod download
+
+WORKDIR /workspace/services/auth
+
+ENTRYPOINT ["sh", "scripts/entrypoint.dev.sh"]
