@@ -1,0 +1,23 @@
+FROM golang:1.26-alpine
+
+RUN apk add --no-cache git && \
+    go install github.com/air-verse/air@latest
+
+WORKDIR /workspace
+
+# Layer 1: root module (filmserver / pkg)
+COPY go.mod go.sum ./
+COPY pkg/ ./pkg/
+
+# Layer 2: service
+COPY services/gateway/ ./services/gateway/
+
+# Minimal go.work for this service only
+RUN printf 'go 1.26.1\n\nuse (\n\t.\n\t./services/gateway\n)\n' > go.work
+
+# Pre-download deps (cached unless go.mod/go.sum change)
+RUN go work sync && cd services/gateway && go mod download
+
+WORKDIR /workspace/services/gateway
+
+CMD ["air", "-c", ".air.toml"]
