@@ -8,6 +8,7 @@ type Config struct {
 	config.Base
 	config.Postgres
 	config.Redis
+	config.NATS
 	config.JWT
 }
 
@@ -21,6 +22,7 @@ func Load() *Config {
 		"DATABASE_URL": cfg.Postgres.URL,
 		"REDIS_URL":    cfg.Redis.URL,
 		"JWT_SECRET":   cfg.JWT.Secret,
+		"NATS_URL":     cfg.NATS.URL,
 	})
 	return cfg
 }

@@ -7,9 +7,12 @@ import (
 	"strings"
 	"unicode"
 
+	"authService/internal/config"
 	"authService/internal/domain"
 
 	"filmserver/pkg/errors"
+	"filmserver/pkg/events"
+	newUser "filmserver/pkg/events/handlers/auth/use-cases/new-user"
 )
 
 type Input struct {
@@ -79,10 +82,14 @@ func (u *Usecase) Execute(ctx context.Context, input Input) (Output, error) {
 		return Output{}, errors.ErrBadRequest
 	}
 
-	_, err = u.UserRepository.Create(ctx, domain.CreateUserInput{
+	createdUser, err := u.UserRepository.Create(ctx, domain.CreateUserInput{
 		Username: username,
 		Email:    email.Address,
 		Password: input.Password,
+	})
+
+	events.New(config.Load().NATS.URL).Auth().Create().Publish(&newUser.NewUserPublishInput{
+		UserId: createdUser.ID,
 	})
 
 	return Output{}, err
